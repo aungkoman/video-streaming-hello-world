@@ -3,24 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <title>Local Video Streamer</title>
+    
     <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet" />
+    
+    <style>
+        /* Basic styling to make the player look good */
+        body { font-family: sans-serif; padding: 20px; background: #f0f0f0; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .video-js { margin-top: 20px; width: 100%; }
+        
+        /* Fix for the quality selector menu alignment */
+        .vjs-menu-button-popup .vjs-menu {
+            left: -3em;
+        }
+    </style>
 </head>
 <body>
 
-    <h1>Upload and Stream</h1>
+    <div class="container">
+        <h1>Upload & Stream (Multi-Quality)</h1>
+        
+        <input type="file" id="fileInput" accept="video/*">
+        <button onclick="uploadVideo()">Upload & Process</button>
+        <p id="status" style="color: #666; margin-top: 10px;"></p>
 
-    <input type="file" id="fileInput" accept="video/*">
-    <button onclick="uploadVideo()">Upload & Process</button>
-    <p id="status"></p>
+        <hr>
 
-    <hr>
-
-    <video id="my-video" class="video-js vjs-default-skin" controls preload="auto" width="640" height="360">
-        </video>
+        <video id="my-video" class="video-js vjs-default-skin vjs-big-play-centered" controls preload="auto" width="640" height="360">
+            </video>
+    </div>
 
     <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
     
+    <script src="https://unpkg.com/videojs-contrib-quality-levels@2.1.0/dist/videojs-contrib-quality-levels.min.js"></script>
+    
+    <script src="https://unpkg.com/videojs-hls-quality-selector@1.1.4/dist/videojs-hls-quality-selector.min.js"></script>
+    
     <script>
+        // Initialize Player with default options
+        var player = videojs('my-video');
+
+        // Initialize the Quality Selector Plugin
+        player.hlsQualitySelector({
+            displayCurrentQuality: true, // Shows "720p" on the button instead of just a gear
+        });
+
         async function uploadVideo() {
             const fileInput = document.getElementById('fileInput');
             const status = document.getElementById('status');
@@ -33,10 +60,9 @@
             const formData = new FormData();
             formData.append('video', fileInput.files[0]);
 
-            status.innerText = "Uploading and Transcoding (Wait for it... this takes CPU)...";
+            status.innerText = "Uploading & Transcoding (This may take a while for 3 resolutions)...";
 
             try {
-                // Send to backend
                 const response = await fetch('http://localhost:3000/upload', {
                     method: 'POST',
                     body: formData
@@ -47,12 +73,12 @@
                 status.innerText = "Done! Video is ready.";
                 console.log("Stream URL:", data.streamUrl);
 
-                // Load video into player
-                var player = videojs('my-video');
+                // Load the Master Playlist into the player
                 player.src({
                     src: data.streamUrl,
-                    type: 'application/x-mpegURL' // This mimetype tells browser it's HLS
+                    type: 'application/x-mpegURL'
                 });
+
                 player.play();
 
             } catch (error) {
